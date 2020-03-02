@@ -4,8 +4,8 @@ big25:   .word 2 5 2   # n=2, [5,2]
 newline: .asciiz "\n"
     .text
 main:
-    la $t0, big123 # load 123 into register $t0
-    la $t1, big25  # load 25 into register $t1
+    la $a0, big123 # load 123 into register $a0
+    la $a1, big25  # load 25 into register $a1
 # sub big123-big25
     jal sub_big
 # print big int
@@ -26,6 +26,7 @@ print_newline:
     jr $ra
 
 print_big:
+    move $t0, $a0      # copy address from $a0 to $t0
     lw $t2, ($t0)      # load length of big int stored in $t0 into register $t2
     move $t3, $t2      # copy length to $t3
     mul $t3, $t3, 4    # multiply big_int length by 4 to get array len
@@ -42,6 +43,8 @@ loop_pb:
     jr $ra
 
 sub_big:
+    move $t0, $a0      # copy address from $a0 to $t0
+    move $t1, $a1      # copy address from $a1 to $t1
     lw $t2, ($t1)      # load length of big int stored in $t1 into register $t2
     move $t3, $t0      # copy $t0 array ptr to $t3
     move $t4, $t1      # copy $t1 array ptr to $t4
