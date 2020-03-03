@@ -8,6 +8,7 @@ main:
     la $a1, big25  # load 25 into register $a1
 # sub big123-big25
     jal sub_big
+    jal compress
 # print big int
     jal print_big
 # exit
@@ -77,4 +78,22 @@ endif:
     addi $t7, -1       # subtract carry
     sw $t7, ($t3)      # store result back in A[B.length]
 return:
+    jr $ra
+
+compress:
+    move $t0, $a0           # copy address from $a0 to $t0
+    lw $t1, ($t0)           # load length of big int stored in $t0 into register $t1
+    move $t2, $t1           # copy length to $t2
+    mul $t2, $t2, 4         # multiply big_int length by 4 to get array len
+    add $t2, $t2, $t0       # get address of last element in big int & store in register $t2
+    li $t3, 0               # initialise counter
+loop_c:
+    lw $t4, ($t2)           # t4 = A[n-i]
+    bne $t4, $0, end_loop_c
+    addi $t3, 1             # increment counter
+    addi $t2, -4            # decrement address
+    bne $t3, $t1, loop_c    # test loop condition 
+end_loop_c:
+    sub $t1, $t1, $t3		# old length - leading zeros count
+    sw $t1, ($t0)           # store new length back into big_int
     jr $ra
