@@ -3,7 +3,7 @@ small_prime_tests:      .asciiz "Small Prime Tests\n"
 compress_test:          .asciiz "Compress Tests\n"
 shift_right_test:       .asciiz "Shift Right Test\n"
 shift_left_test:        .asciiz "Shift Left Test\n"
-comparison_test:        .asciiz "Comparison Tests\n"
+comparison_tests:       .asciiz "Comparison Tests\n"
 multiply_tests:         .asciiz "Multiply Tests\n"
 power_tests:            .asciiz "Power Tests\n"
 subtraction_tests:      .asciiz "Subtraction Tests\n"
@@ -24,6 +24,7 @@ big_int_7_654_321:      .word   7 1 2 3 4 5 6 7
 big_int_9_000_000:      .word   7 0 0 0 0 0 0 9   
 big_int_10_000_000:     .word   8 0 0 0 0 0 0 0 1
 big_int_9_000_000_000:  .word   10 0 0 0 0 0 0 0 0 0 9
+big_int_empty_space:    .space  1400 # 350*4 bytes
 
     .text
 main:
@@ -70,6 +71,28 @@ main:
     jal     shift_left                  # ShiftLeft(700)
     jal     print_big
 
+    # Comparison Tests
+    la      $a0, comparison_tests
+    jal     print_string                # print "Comparison Tests"
+    la      $a0, big_int_42
+    la      $a1, big_int_30
+    jal     compare_big                 # CompareBig(42,30)
+    move    $a0, $v0                    # move result to $a0
+    jal     print_int                   # print result
+    jal     print_newline
+    la      $a0, big_int_30
+    la      $a1, big_int_42
+    jal     compare_big                 # CompareBig(30,42)
+    move    $a0, $v0                    # move result to $a0
+    jal     print_int                   # print result
+    jal     print_newline
+    la      $a0, big_int_42
+    la      $a1, big_int_42
+    jal     compare_big                 # CompareBig(42,42)
+    move    $a0, $v0                    # move result to $a0
+    jal     print_int                   # print result
+    jal     print_newline
+
     # Subtraction Tests
     la      $a0, subtraction_tests
     jal     print_string                # print "Subtraction Tests"
@@ -89,6 +112,34 @@ main:
     # Exit
     li		$v0,10		                # $v0=10
     syscall
+
+compare_big:
+    lw      $t0, ($a0)                  # t0 = A.length
+    lw      $t1, ($a1)                  # t1 = B.length
+    li      $v0, 0                      # initialise return value = 0
+    beq     $t0, $t1, compare_big_digits# if lengths are equal then goto individual digits comparison
+    bgt		$t0, $t1, a_greater_than_b  # if $t0 > $t1 then goto a_greater_than_b
+a_less_than_b:
+    li      $v0, -1                     # return = -1
+    j		return_cb				    # jump to end of compare_big
+a_greater_than_b:
+    li      $v0, 1                      # return = 1
+    j		return_cb				    # jump to end of compare_big
+compare_big_digits:
+    add     $t2, $a0, 4                 # t2 points to A[0]
+    add     $t3, $a1, 4                 # t3 points to B[0]
+    li      $t4, 0                      # initialise counter
+loop_cb:
+    lw      $t5, ($t2)                  # load A[i]
+    lw      $t6, ($t3)                  # load B[i]
+    bgt		$t5, $t6, a_greater_than_b  # if A[i] > B[i] then goto a_greater_than_b
+    blt		$t5, $t6, a_less_than_b     # if A[i] < B[i] then goto a_less_than_b
+    addi    $t2, 4                      # t2 points to A[i+1]
+    addi    $t3, 4                      # t3 points to B[i+1]
+    addi    $t4, 1                      # counter += 1
+    bne     $t4, $t0, loop_cb           # test loop condition
+return_cb:
+    jr      $ra
 
 compress:
     move    $t0, $a0                    # copy address from $a0 to $t0
@@ -206,7 +257,6 @@ loop_sr:
     addi    $t2, 1                      # A.length += 1
     sw      $t2, ($t0)                  # store length back into big int
     jr      $ra
-
 
 sub_big:
     sw      $ra, -4($sp)                # store return address on stack
