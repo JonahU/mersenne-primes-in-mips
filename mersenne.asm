@@ -20,10 +20,10 @@ big_int_12:             .word   2 2 1
 big_int_30:             .word   2 0 3
 big_int_42:             .word   2 2 4
 big_int_7000:           .word   4 0 0 0 7
-big_int_7_654_321:      .word   7 6 5 4 3 2 1
-big_int_9_000_000:      .word   0 0 0 0 0 0 9   
-big_int_10_000_000:     .word   0 0 0 0 0 0 0 1
-big_int_9_000_000_000:  .word   0 0 0 0 0 0 0 0 0 9
+big_int_7_654_321:      .word   7 1 2 3 4 5 6 7
+big_int_9_000_000:      .word   7 0 0 0 0 0 0 9   
+big_int_10_000_000:     .word   8 0 0 0 0 0 0 0 1
+big_int_9_000_000_000:  .word   10 0 0 0 0 0 0 0 0 0 9
 
     .text
 main:
@@ -64,7 +64,10 @@ main:
     la      $a1, big_int_12
     jal     sub_big                     # $a0 = sub_big(42,12)
     jal     print_big                   # print result
-    # TODO: 9000000000 - 7654321
+    la      $a0, big_int_9_000_000_000
+    la      $a1, big_int_7_654_321
+    jal     sub_big                     # $a0 = sub_big(9000000000,7654321)
+    jal     print_big                   # print result
 
     # Exit
     li		$v0,10		                # $v0=10
@@ -160,7 +163,7 @@ loop_sb:
     add     $t8, $t8, $t6               # B[i] += carry
 # if
     bge     $t7, $t8, else_sb           # if A[i] >= B[i] goto else block
-    addi    $t7, 10
+    addi    $t7, 10                     # $t7 += 10
     li      $t6, 1                      # carry = 1
     sub     $t7, $t7, $t8               # $t7 = $t7 - $t8/A[i] - B[i]
     j       endif_sb			        # jump to endif
@@ -172,12 +175,19 @@ endif_sb:
     addi    $t5, 1                      # increment counter
     addi    $t3, 4                      # increment address A
     addi    $t4, 4                      # increment address B
-    li      $t6, 0                      # carry = 0
     bne     $t5, $t2, loop_sb
 # end loop
     beq     $t6, $0, return_sb          # if carry == 0, return, else:
+loop2_sb:
     lw      $t7, ($t3)                  # load A[B.length]
+    bne     $t7, $0, end_loop2_sb       # end loop if A[i] != 0
+    li      $t7, 9
+    sw      $t7, ($t3)                  # A[i] = 9
+    addi    $t3, 4                      # increment ptr to A[i+1]
+    j       loop2_sb                    # check again if integer is > 0
+end_loop2_sb:
     addi    $t7, -1                     # subtract carry
     sw      $t7, ($t3)                  # store result back in A[B.length]
 return_sb:
+    # TODO: call compress
     jr      $ra
