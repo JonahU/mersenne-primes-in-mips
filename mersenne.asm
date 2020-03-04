@@ -53,6 +53,15 @@ main:
     jal     compress                    # Compress(0003)
     jal     print_big
 
+    # Shift Right Test
+    la      $a0, shift_right_test
+    jal     print_string                # print "Shift Right Test"
+    la      $a0, big_int_0003
+    jal     shift_right                 # ShiftRight(3)
+    jal     shift_right                 # ShiftRight(30)
+    jal     shift_right                 # ShiftRight(300)
+    jal     print_big
+
     # Shift Left Test
     la      $a0, shift_left_test
     jal     print_string                # print "Shift Left Test"
@@ -178,6 +187,26 @@ loop_sl:
     lw      $ra, ($sp)                  # get return address off stack
     addi    $sp, 4                      # increment stack ptr
     jr      $ra
+
+shift_right:
+    move    $t0, $a0                    # copy address from $a0 to $t0
+    move    $t1, $t0                    # make another copy
+    lw      $t2, ($t1)                  # get A.length
+    addi    $t1, 4                      # point to A[0]
+    lw      $t3, ($t1)                  # get A[0]
+    sw      $0, ($t1)                   # set A[0] = 0
+    li      $t4, 0                      # initialise counter
+loop_sr:
+    addi    $t1, 4                      # point to A[i+1]
+    lw      $t5, ($t1)                  # temp = A[i+1]
+    sw      $t3, ($t1)                  # A[i+1] = A[i]
+    move    $t3, $t5                    # update A[i] temp register
+    addi    $t4, 1                      # increment counter
+    bne     $t4, $t2, loop_sr           # test loop condition 
+    addi    $t2, 1                      # A.length += 1
+    sw      $t2, ($t0)                  # store length back into big int
+    jr      $ra
+
 
 sub_big:
     sw      $ra, -4($sp)                # store return address on stack
