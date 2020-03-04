@@ -148,6 +148,8 @@ print_string:
     jr      $ra
 
 sub_big:
+    sw      $ra, -4($sp)                # store return address on stack
+    sub     $sp, $sp, 4                 # decrement stack ptr
     move    $t0, $a0                    # copy address from $a0 to $t0
     move    $t1, $a1                    # copy address from $a1 to $t1
     lw      $t2, ($t1)                  # load length of big int stored in $t1 into register $t2
@@ -189,5 +191,7 @@ end_loop2_sb:
     addi    $t7, -1                     # subtract carry
     sw      $t7, ($t3)                  # store result back in A[B.length]
 return_sb:
-    # TODO: call compress
+    jal     compress
+    lw      $ra, ($sp)                  # get return address off stack
+    addi    $sp, 4                      # increment stack ptr
     jr      $ra
