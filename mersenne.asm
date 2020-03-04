@@ -50,7 +50,15 @@ main:
     la      $a0, compress_test
     jal     print_string                # print "Compress Test"
     la      $a0, big_int_0003
-    jal     compress
+    jal     compress                    # Compress(0003)
+    jal     print_big
+
+    # Shift Left Test
+    la      $a0, shift_left_test
+    jal     print_string                # print "Shift Left Test"
+    la      $a0, big_int_7000
+    jal     shift_left                  # ShiftLeft(7000)
+    jal     shift_left                  # ShiftLeft(700)
     jal     print_big
 
     # Subtraction Tests
@@ -145,6 +153,30 @@ print_newline:
 print_string:
     li      $v0, 4                      # 4 is print_string code
     syscall
+    jr      $ra
+
+shift_left:
+    sw      $ra, -4($sp)                # store return address on stack
+    sub     $sp, $sp, 4                 # decrement stack ptr
+    move    $t0, $a0                    # copy address from $a0 to $t0
+    lw      $t2, ($t0)                  # load length of big int stored in $t0 into register $t2
+    move    $t3, $t2                    # copy length to $t3
+    mul     $t3, $t3, 4                 # multiply big_int length by 4 to get array len
+    add     $t3, $t3, $t0               # get address of last element in big int & store in register $t3
+    li      $t4, 1                      # initialise counter
+    lw      $t5, ($t3)                  # get A[n]
+    sw      $0, ($t3)                   # A[n] = 0
+loop_sl:
+    addi    $t3, -4                     # point to A[i-1]
+    lw      $t6, ($t3)                  # temp = A[i-1]
+    sw      $t5, ($t3)                  # A[i-1] = A[i]var
+    move    $t5, $t6                    # A[i]var = temp
+    addi    $t4, 1                      # increment counter
+    bne     $t4, $t2, loop_sl           # test loop condition
+# end loop
+    jal     compress
+    lw      $ra, ($sp)                  # get return address off stack
+    addi    $sp, 4                      # increment stack ptr
     jr      $ra
 
 sub_big:
