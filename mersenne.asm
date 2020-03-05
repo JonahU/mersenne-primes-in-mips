@@ -25,6 +25,7 @@ big_int_9_000_000:      .word   7 0 0 0 0 0 0 9
 big_int_10_000_000:     .word   8 0 0 0 0 0 0 0 1
 big_int_9_000_000_000:  .word   10 0 0 0 0 0 0 0 0 0 9
 big_int_empty_space:    .space  1400 # 350*4 bytes
+big_int_empty_space_2:  .space  1400
 
     .text
 main:
@@ -112,6 +113,14 @@ main:
     move    $a0, $v0                    # move result ptr to $a0
     jal     print_big                   # print result
 
+    la      $a0, power_tests
+    jal     print_string                # print "Power Tests"
+    la      $a0, big_int_3
+    li      $a1, 4
+    jal     pow_big                     # PowBig(3, 4)
+    move    $a0, $v0                    # move result ptr to $a0
+    jal     print_big
+
     # Subtraction Tests
     la      $a0, subtraction_tests
     jal     print_string                # print "Subtraction Tests"
@@ -197,9 +206,34 @@ end_loop_isp:
     move    $v0, $t3                    # store result in v0
     jr		$ra					        # jump to $ra
 
+memcpy_big:
+    sw      $s0, -4($sp)                # store s0 on stack
+    sw      $s1, -8($sp)                # store s1 on stack
+    sw      $s2, -12($sp)               # store s2 on stack
+    sub     $sp, $sp, 12                # decrement stack ptr by 3
+    move    $t0, $a0                    # load source address
+    move    $t1, $a1                    # load destination address
+    lw      $t2, ($t0)                  # get length of source big_int
+    li      $t3, -1                     # initialise counter (want additional iteration to copy length)
+loop_memb:
+    lw      $t4, ($t0)                  # temp = A[i]
+    sw      $t4, ($t1)                  # B[i] = temp
+    addi    $t0, 4                      # point to A[a+1]
+    addi    $t1, 4                      # point to B[i+1]
+    addi    $t3, 1                      # counter += 1
+    bne     $t3, $t2, loop_memb
+    lw      $s2, 0($sp)                 # pop s2 off stack
+    lw      $s1, 4($sp)                 # pop s1 off stack
+    lw      $s0, 8($sp)                 # pop s0 off stack
+    addi    $sp, 12                     # increment stack ptr by 3
+    jr      $ra
+
 mult_big:
     sw      $ra, -4($sp)                # store return address on stack
-    sub     $sp, $sp, 4                 # decrement stack ptr
+    sw      $s0, -8($sp)                # store s0 on stack
+    sw      $s1, -12($sp)               # store s1 on stack
+    sw      $s2, -16($sp)               # store s1 on stack
+    sub     $sp, $sp, 16                # decrement stack ptr by 4
     move 	$t0, $a0		            # t0 = A
     move 	$t1, $a1		            # t1 = B
     la      $v0, big_int_empty_space    # v0 = C
@@ -226,9 +260,8 @@ loop_outer_mb:
     li      $t7, 0                      # initialise carry
     move    $t8, $t5                    # init inner counter (j) = outer counter (i)
     move 	$s1, $t0		            # reset s0 to point to A[0]
-    # add     $s1, $s1, $s5               # point to A[i]
     add     $t4, $v0, 4                 # reset t4 to point to C[0]
-    add     $t4, $t4, $s5               # point to C[i]
+    add     $t4, $t4, $s5               # point to C[i] (add address offset)
 loop_inner_mb:
     lw		$t9, ($t4)		            # temp = C[j]
     add     $t9, $t9, $t7               # temp += carry
@@ -242,8 +275,6 @@ loop_inner_mb:
     mfhi    $s4                         # s4 = temp % 10
     sw      $s4, ($t4)                  # C[j] = s4
     addi    $s1, 4                      # s1 points to A[j-i+1]
-    # mul     $s3, $t5, -4                # s3 = i*(-4)
-    # add     $s1, $s1, $s3               # s1 points to A[j-i]
     addi    $t4, 4                      # t4 points to C[j+1]
     addi    $t8, 1                      # inner counter += 1
     bne     $t8, $s0, loop_inner_mb     # while inner counter != A.length+i, continue inner loop
@@ -260,13 +291,35 @@ endif_mb:
     addi    $s5, 4                      # increment address offset to the next address
     addi    $t5, 1                      # outer counter += 1
     bne     $t5, $t6, loop_outer_mb     # while outer counter != B.length, continue outer loop
-
     move    $a0, $v0                    # a0 = address pointing to C
     jal     compress                    # Compress(C[])
+    lw      $s2, 0($sp)                 # pop s2 off stack
+    lw      $s1, 4($sp)                 # pop s1 off stack
+    lw      $s0, 8($sp)                 # pop s0 off stack
+    lw      $ra, 12($sp)                # get return address off stack
+    addi    $sp, 16                     # increment stack ptr by 4
+    jr      $ra
+    
+pow_big:
+    sw      $ra, -4($sp)                # store return address on stack
+    sub     $sp, $sp, 4                 # decrement stack ptr
+    move    $t0, $a0                    # copy big_int address from $a0 to $t0
+    move    $s0, $a0                    # copy big_int address also to $s0
+    move    $s1, $a1                    # move exponent to $t1
+    li      $s2, 1                      # initialise counter
+loop_powb:
+    move    $a0, $s0                    # a0 = A
+    move    $a1, $t0                    # a1 = result of last iteration
+    jal     mult_big                    # v0 = MultBig(A, result of last iteration)
+    addi    $s2, 1                      # increment counter
+    move    $a0, $v0                    # move result address to a0
+    la      $a1, big_int_empty_space_2  # load address of empty space 2
+    jal     memcpy_big                  # copy result of MultBig to empty space 2
+    move    $t0, $a1                    # t0 points to empty space 2
+    bne     $s2, $s1, loop_powb         # test loop condition
     lw      $ra, ($sp)                  # get return address off stack
     addi    $sp, 4                      # increment stack ptr
     jr      $ra
-    
 
 print_big:
     sw      $ra, -4($sp)                # store return address on stack
