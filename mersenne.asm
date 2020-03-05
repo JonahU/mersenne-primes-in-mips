@@ -93,6 +93,20 @@ main:
     jal     print_int                   # print result
     jal     print_newline
 
+    # Multiply Tests
+    la      $a0, multiply_tests
+    jal     print_string                # print "Multiply Tests"
+    la      $a0, big_int_3
+    la      $a1, big_int_7
+    jal     mult_big                    # MultBig(3,7)
+    move    $a0, $v0                    # move result ptr to $a0
+    jal     print_big                   # print result
+    la      $a0, big_int_30
+    la      $a1, big_int_42
+    jal     mult_big                    # MultBig(30,42)
+    move    $a0, $v0                    # move result ptr to $a0
+    jal     print_big                   # print result
+
     # Subtraction Tests
     la      $a0, subtraction_tests
     jal     print_string                # print "Subtraction Tests"
@@ -177,6 +191,73 @@ continue_loop_isp:
 end_loop_isp:
     move    $v0, $t3                    # store result in v0
     jr		$ra					        # jump to $ra
+
+mult_big:
+    sw      $ra, -4($sp)                # store return address on stack
+    sub     $sp, $sp, 4                 # decrement stack ptr
+    move 	$t0, $a0		            # t0 = A
+    move 	$t1, $a1		            # t1 = B
+    la      $v0, big_int_empty_space    # v0 = C
+    lw		$t2, ($t0)		            # temp = A.length
+    lw		$t3, ($t1)		            # temp2 = B.length
+    add     $t2, $t2, $t3               # temp += temp2
+    sw      $t2, ($v0)                  # C.length = A.length + B.length
+    add     $t4, $v0, 4                 # t4 points to C[0]
+    li      $t5, 0                      # initialise counter
+loop_init_zero:                         # initialse all digits in C to 0
+    sw      $0, ($t4)                   # C[i] = 0
+    addi    $t4, 4                      # t4 points to C[i+1]
+    addi    $t5, 1                      # counter += 1
+    bne     $t5, $t2, loop_init_zero    # check loop condition
+    li      $t5, 0                      # reset counter
+    lw		$s0, ($t0)		            # s0 = A.length
+    move 	$t6, $t3		            # t6 = B.length
+    addi    $t0, 4                      # t0 points to A[0]
+    addi    $t1, 4                      # t1 points to B[0]
+loop_outer_mb:
+    add     $s0, $s0, $t5               # s0 += outer counter (i) 
+    li      $t7, 0                      # initialise carry
+    move    $t8, $t5                    # init inner counter = outer counter
+    move 	$s1, $t0		            # s0 points to A[0]
+    move 	$s2, $t1		            # s1 points to B[0]
+    add     $t4, $v0, 4                 # reset t4 to point to C[0]
+loop_inner_mb:
+    lw		$t9, ($t4)		            # temp = C[j]
+    add     $t9, $t9, $t7               # temp += carry
+    lw      $t2, ($s1)                  # t2 = A[j-i]
+    lw      $t3, ($s2)                  # t3 = B[i]
+    mul     $t2, $t2, $t3               # t2 = B[i] * A[j-i]
+    add     $t9, $t9, $t2               # temp += t2
+    li      $s4, 10                     # s4 = 10
+    div     $t9, $s4                    # temp / 10
+    mflo    $t7                         # carry = temp / 10
+    mfhi    $s4                         # s4 = temp % 10
+    sw      $s4, ($t4)                  # C[j] = s4
+    addi    $s1, 4                      # s1 points to A[j+1]
+    mul     $s3, $t5, -4                # s3 = i*(-4)
+    add     $s1, $s1, $s3               # s1 points to A[j-i]
+    addi    $t4, 4                      # t4 points to C[j+1]
+    addi    $t8, 1                      # inner counter += 1
+    bne     $t8, $s0, loop_inner_mb     # while inner counter != A.length+i, continue inner loop
+    beq     $t7, $0, endif_mb           # if carry == 0 then goto endif
+    lw		$t9, ($t4)		            # temp = C[j]
+    add     $t9, $t9, $t7               # temp += carry
+    li      $s4, 10                     # s4 = 10
+    div     $t9, $s4                    # temp / 10
+    mflo    $t7                         # carry = temp / 10
+    mfhi    $s4                         # s4 = temp % 10
+    sw      $s4, ($t4)                  # C[j] = s4
+endif_mb:
+    addi    $s2, 4                      # s2 points to B[i+1]
+    addi    $t5, 1                      # outer counter += 1
+    bne     $t5, $t6, loop_outer_mb     # while outer counter != B.length, continue outer loop
+
+    move    $a0, $v0                    # a0 = address pointing to C
+    jal     compress                    # Compress(C[])
+    lw      $ra, ($sp)                  # get return address off stack
+    addi    $sp, 4                      # increment stack ptr
+    jr      $ra
+    
 
 print_big:
     sw      $ra, -4($sp)                # store return address on stack
