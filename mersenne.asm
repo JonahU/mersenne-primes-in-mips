@@ -113,6 +113,7 @@ main:
     move    $a0, $v0                    # move result ptr to $a0
     jal     print_big                   # print result
 
+    # Power Tests
     la      $a0, power_tests
     jal     print_string                # print "Power Tests"
     la      $a0, big_int_3
@@ -120,6 +121,11 @@ main:
     jal     pow_big                     # PowBig(3, 4)
     move    $a0, $v0                    # move result ptr to $a0
     jal     print_big
+    # la      $a0, big_int_42
+    # li      $a1, 42
+    # jal     pow_big                     # PowBig(42, 42)
+    # move    $a0, $v0                    # move result ptr to $a0
+    # jal     print_big
 
     # Subtraction Tests
     la      $a0, subtraction_tests
