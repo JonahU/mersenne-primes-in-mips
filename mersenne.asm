@@ -106,6 +106,11 @@ main:
     jal     mult_big                    # MultBig(30,42)
     move    $a0, $v0                    # move result ptr to $a0
     jal     print_big                   # print result
+    la      $a0, big_int_10_000_000
+    la      $a1, big_int_9_000_000
+    jal     mult_big                    # MultBig(10000000,9000000)
+    move    $a0, $v0                    # move result ptr to $a0
+    jal     print_big                   # print result
 
     # Subtraction Tests
     la      $a0, subtraction_tests
@@ -214,13 +219,16 @@ loop_init_zero:                         # initialse all digits in C to 0
     move 	$t6, $t3		            # t6 = B.length
     addi    $t0, 4                      # t0 points to A[0]
     addi    $t1, 4                      # t1 points to B[0]
+    move 	$s2, $t1		            # s2 points to B[0]
+    li      $s5, 0                      # initialise address offset
 loop_outer_mb:
     add     $s0, $s0, $t5               # s0 += outer counter (i) 
     li      $t7, 0                      # initialise carry
-    move    $t8, $t5                    # init inner counter = outer counter
-    move 	$s1, $t0		            # s0 points to A[0]
-    move 	$s2, $t1		            # s1 points to B[0]
+    move    $t8, $t5                    # init inner counter (j) = outer counter (i)
+    move 	$s1, $t0		            # reset s0 to point to A[0]
+    # add     $s1, $s1, $s5               # point to A[i]
     add     $t4, $v0, 4                 # reset t4 to point to C[0]
+    add     $t4, $t4, $s5               # point to C[i]
 loop_inner_mb:
     lw		$t9, ($t4)		            # temp = C[j]
     add     $t9, $t9, $t7               # temp += carry
@@ -233,9 +241,9 @@ loop_inner_mb:
     mflo    $t7                         # carry = temp / 10
     mfhi    $s4                         # s4 = temp % 10
     sw      $s4, ($t4)                  # C[j] = s4
-    addi    $s1, 4                      # s1 points to A[j+1]
-    mul     $s3, $t5, -4                # s3 = i*(-4)
-    add     $s1, $s1, $s3               # s1 points to A[j-i]
+    addi    $s1, 4                      # s1 points to A[j-i+1]
+    # mul     $s3, $t5, -4                # s3 = i*(-4)
+    # add     $s1, $s1, $s3               # s1 points to A[j-i]
     addi    $t4, 4                      # t4 points to C[j+1]
     addi    $t8, 1                      # inner counter += 1
     bne     $t8, $s0, loop_inner_mb     # while inner counter != A.length+i, continue inner loop
@@ -249,6 +257,7 @@ loop_inner_mb:
     sw      $s4, ($t4)                  # C[j] = s4
 endif_mb:
     addi    $s2, 4                      # s2 points to B[i+1]
+    addi    $s5, 4                      # increment address offset to the next address
     addi    $t5, 1                      # outer counter += 1
     bne     $t5, $t6, loop_outer_mb     # while outer counter != B.length, continue outer loop
 
@@ -264,6 +273,7 @@ print_big:
     sub     $sp, $sp, 4                 # decrement stack ptr
     move    $t0, $a0                    # copy address from $a0 to $t0
     lw      $t2, ($t0)                  # load length of big int stored in $t0 into register $t2
+    beq     $t2, $0, end_loop_pb        # if length is 0 then skip print_big
     move    $t3, $t2                    # copy length to $t3
     mul     $t3, $t3, 4                 # multiply big_int length by 4 to get array len
     add     $t3, $t3, $t0               # get address of last element in big int & store in register $t3
@@ -274,7 +284,7 @@ loop_pb:
     addi    $t4, 1                      # increment counter
     addi    $t3, -4                     # decrement address
     bne     $t4, $t2, loop_pb           # test loop condition 
-# end loop
+end_loop_pb:
     jal     print_newline
     lw      $ra, ($sp)                  # get return address off stack
     addi    $sp, 4                      # increment stack ptr
