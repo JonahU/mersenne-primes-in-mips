@@ -27,6 +27,8 @@ big_int_9_000_000_000:  .word   10 0 0 0 0 0 0 0 0 0 9
 big_int_empty_space:    .space  1400 # 350*4 bytes
 big_int_empty_space_2:  .space  1400
 
+TEST_big_int_1764: .word 4 4 6 7 1
+
     .text
 main:
     # Small Prime Tests
@@ -112,6 +114,19 @@ main:
     jal     mult_big                    # MultBig(10000000,9000000)
     move    $a0, $v0                    # move result ptr to $a0
     jal     print_big                   # print result
+
+    # Multiply bug test
+    # la      $a0, TEST_big_int_1764
+    # la      $a1, big_int_42
+    # jal     mult_big                    # MultBig(1764,42)
+    # move    $a0, $v0                    # move result ptr to $a0 
+    # jal     print_big                   # print result
+    # la      $a0, big_int_42
+    # la      $a1, TEST_big_int_1764
+    # jal     mult_big                    # MultBig(42, 1764)
+    # move    $a0, $v0                    # move result ptr to $a0 
+    # jal     print_big                   # print result
+
 
     # Power Tests
     la      $a0, power_tests
@@ -235,6 +250,9 @@ loop_memb:
     addi    $sp, 12                     # increment stack ptr by 3
     jr      $ra
 
+# TODO: fix parameter order bug
+# 1764 * 42 = 74088     [Correct]
+# 42 * 1764 = 414088    [Wrong]
 mult_big:
     sw      $ra, -4($sp)                # store return address on stack
     sw      $s0, -8($sp)                # store s0 on stack
@@ -317,7 +335,6 @@ pow_big:
 loop_powb:
     move    $a0, $t0                    # a0 = result of last iteration
     move    $a1, $s0                    # a1 = A
-    # TODO: bug with mult_big where swapping the a0 with a1 gives the wrong result
     jal     mult_big                    # v0 = MultBig(A, result of last iteration)
     move    $a0, $v0                    # move result address to a0
     la      $a1, big_int_empty_space_2  # load address of empty space 2
