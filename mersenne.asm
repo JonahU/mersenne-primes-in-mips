@@ -121,16 +121,11 @@ main:
     jal     pow_big                     # PowBig(3, 4)
     move    $a0, $v0                    # move result ptr to $a0
     jal     print_big
-    # la      $a0, big_int_42
-    # li      $a1, 42
-    # jal     pow_big                     # PowBig(42, 42)
-    # move    $a0, $v0                    # move result ptr to $a0
-    # jal     print_big
     la      $a0, big_int_42
-    li      $a1, 3
-    jal     pow_big                     # PowBig(42, 3)
+    li      $a1, 42
+    jal     pow_big                     # PowBig(42, 42)
     move    $a0, $v0                    # move result ptr to $a0
-    jal     print_big                   # should print 74088
+    jal     print_big
 
     # Subtraction Tests
     la      $a0, subtraction_tests
@@ -320,8 +315,9 @@ pow_big:
     move    $s1, $a1                    # move exponent to $t1
     li      $s2, 1                      # initialise counter
 loop_powb:
-    move    $a0, $s0                    # a0 = A
-    move    $a1, $t0                    # a1 = result of last iteration
+    move    $a0, $t0                    # a0 = result of last iteration
+    move    $a1, $s0                    # a1 = A
+    # TODO: bug with mult_big where swapping the a0 with a1 gives the wrong result
     jal     mult_big                    # v0 = MultBig(A, result of last iteration)
     move    $a0, $v0                    # move result address to a0
     la      $a1, big_int_empty_space_2  # load address of empty space 2
