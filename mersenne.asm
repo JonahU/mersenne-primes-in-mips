@@ -233,6 +233,7 @@ loop_memb:
     addi    $t1, 4                      # point to B[i+1]
     addi    $t3, 1                      # counter += 1
     bne     $t3, $t2, loop_memb
+    move    $v0, $a1                    # set return to destination address
     lw      $s2, 0($sp)                 # pop s2 off stack
     lw      $s1, 4($sp)                 # pop s1 off stack
     lw      $s0, 8($sp)                 # pop s0 off stack
@@ -322,11 +323,11 @@ loop_powb:
     move    $a0, $s0                    # a0 = A
     move    $a1, $t0                    # a1 = result of last iteration
     jal     mult_big                    # v0 = MultBig(A, result of last iteration)
-    addi    $s2, 1                      # increment counter
     move    $a0, $v0                    # move result address to a0
     la      $a1, big_int_empty_space_2  # load address of empty space 2
     jal     memcpy_big                  # copy result of MultBig to empty space 2
-    move    $t0, $a1                    # t0 points to empty space 2
+    move    $t0, $v0                    # t0 points to empty space 2
+    addi    $s2, 1                      # increment counter
     bne     $s2, $s1, loop_powb         # test loop condition
     lw      $ra, ($sp)                  # get return address off stack
     addi    $sp, 4                      # increment stack ptr
