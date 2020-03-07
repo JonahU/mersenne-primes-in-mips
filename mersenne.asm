@@ -16,16 +16,22 @@ newline:                .asciiz "\n"
 big_int_0003:           .word   4 3 0 0 0
 big_int_3:              .word   1 3
 big_int_7:              .word   1 7
+big_int_7_copy:         .word   1 7
 big_int_12:             .word   2 2 1
 big_int_30:             .word   2 0 3
 big_int_42:             .word   2 2 4
+big_int_48:             .word   2 8 4
 big_int_7000:           .word   4 0 0 0 7
 big_int_7_654_321:      .word   7 1 2 3 4 5 6 7
 big_int_9_000_000:      .word   7 0 0 0 0 0 0 9   
 big_int_10_000_000:     .word   8 0 0 0 0 0 0 0 1
 big_int_9_000_000_000:  .word   10 0 0 0 0 0 0 0 0 0 9
-big_int_empty_space:    .space  1400 # 350*4 bytes
-big_int_empty_space_2:  .space  1400
+big_int_9_000_000_000_copy:
+                        .word   10 0 0 0 0 0 0 0 0 0 9
+                                        # 1404 = (350+1)*4 bytes 
+big_int_empty_space:    .space  1404    # mult_big destination
+big_int_empty_space_2:  .space  1404    # pow_big destination
+big_int_empty_space_3:  .space  1404    # temp space used by mod_big
 
 TEST_big_int_1764: .word 4 4 6 7 1
 
@@ -158,6 +164,25 @@ main:
     jal     sub_big                     # $a0 = sub_big(9000000000,7654321)
     jal     print_big                   # print result
 
+    # Modulus Tests
+    la      $a0, modulus_tests
+    jal     print_string                # print "Modulus Tests"
+    la      $a0, big_int_7_copy
+    la      $a1, big_int_3
+    jal     mod_big                     # 7 % 3
+    move    $a0, $v0
+    jal     print_big                   # print result
+    la      $a0, big_int_48
+    la      $a1, big_int_12
+    jal     mod_big                     # 48 % 12
+    move    $a0, $v0
+    jal     print_big                   # print result
+    la      $a0, big_int_9_000_000_000_copy
+    la      $a1, big_int_7_654_321
+    jal     mod_big                     # 9,000,000,000 % 7,654,321
+    move    $a0, $v0
+    jal     print_big                   # print result
+
     # Exit
     li		$v0,10		                # $v0=10
     syscall
@@ -175,16 +200,19 @@ a_greater_than_b:
     li      $v0, 1                      # return = 1
     j		return_cb				    # jump to end of compare_big
 compare_big_digits:
-    add     $t2, $a0, 4                 # t2 points to A[0]
-    add     $t3, $a1, 4                 # t3 points to B[0]
+    move    $t2, $a0                    # t2 = A
+    move    $t3, $a1                    # t3 = B
+    mul     $t7, $t0, 4                 # multiply big_int length by 4 to get array len
+    add     $t2, $t2, $t7               # get ptr to A[n]
+    add     $t3, $t3, $t7               # get ptr to B[n]
     li      $t4, 0                      # initialise counter
 loop_cb:
     lw      $t5, ($t2)                  # load A[i]
     lw      $t6, ($t3)                  # load B[i]
     bgt		$t5, $t6, a_greater_than_b  # if A[i] > B[i] then goto a_greater_than_b
     blt		$t5, $t6, a_less_than_b     # if A[i] < B[i] then goto a_less_than_b
-    addi    $t2, 4                      # t2 points to A[i+1]
-    addi    $t3, 4                      # t3 points to B[i+1]
+    addi    $t2, -4                     # t2 points to A[i-1]
+    addi    $t3, -4                     # t3 points to B[i-1]
     addi    $t4, 1                      # counter += 1
     bne     $t4, $t0, loop_cb           # test loop condition
 return_cb:
@@ -248,6 +276,72 @@ loop_memb:
     lw      $s1, 4($sp)                 # pop s1 off stack
     lw      $s0, 8($sp)                 # pop s0 off stack
     addi    $sp, 12                     # increment stack ptr by 3
+    jr      $ra
+
+mod_big:
+    sw      $ra, -4($sp)                # store return address on stack
+    sw      $s0, -8($sp)                # store s0 on stack
+    sw      $s1, -12($sp)               # store s1 on stack
+    sw      $s2, -16($sp)               # store s2 on stack
+    sw      $s3, -20($sp)               # store s3 on stack
+    sw      $s4, -24($sp)               # store s4 on stack
+    sw      $s5, -28($sp)               # store s5 on stack
+    sw      $s6, -32($sp)               # store s6 on stack
+    sw      $s7, -36($sp)               # store s7 on stack
+    sub     $sp, $sp, 36                # decrement stack ptr by 9
+    move    $s0, $a0                    # s0 = a
+    move    $s1, $a1                    # s1 = b
+    la      $s2, big_int_empty_space_3  # s2 = empty space
+    move    $a0, $s1
+    move    $a1, $s2
+    jal     memcpy_big                  # b_copy = b
+loop_modb:
+    move    $a0, $s0
+    move    $a1, $s2
+    jal     compare_big                 # CompareBig(a,b_copy)
+    move    $t0, $v0                    # t0 = CompareBig result
+    li      $t1, 1                      # t1 = 1
+    bne		$t0, $t1, end_loop_modb	    # if $t0 != 1 then goto end of loop
+    move    $a0, $s2
+    jal     shift_right                 # b_copy >> 1
+    j		loop_modb	                # jump to start of loop
+end_loop_modb:
+    move    $a0, $s2
+    jal     shift_left                  # b_copy << 1
+loop_outer_modb:
+    move    $a0, $s2
+    move    $a1, $s1
+    jal     compare_big                 # CompareBig(b_copy,b)
+    move    $t0, $v0                    # t0 = CompareBig result
+    li      $t1, -1                     # t1 = 1
+    beq		$t0, $t1, end_loop_outer_modb# if $t0 == -1 then goto end of loop
+loop_inner_modb:
+    move    $a0, $s0
+    move    $a1, $s2
+    jal     compare_big                 # CompareBig(a,b_copy)
+    move    $t0, $v0                    # t0 = CompareBig result
+    li      $t1, -1                     # t1 = 1
+    beq		$t0, $t1, end_loop_inner_modb# if $t0 == -1 then goto end of loop
+    move    $a0, $s0
+    move    $a1, $s2
+    jal     sub_big                     # a - b_copy
+    j		loop_inner_modb				# jump to start of loop
+end_loop_inner_modb:
+    move    $a0, $s2
+    jal     shift_left                  # b_copy << 1
+    j		loop_outer_modb				# jump to loop start
+end_loop_outer_modb:
+    move    $v0, $s0                    # return address = a
+    lw      $s7, 0($sp)                 # pop s7 off stack
+    lw      $s6, 4($sp)                 # pop s6 off stack
+    lw      $s5, 8($sp)                 # pop s5 off stack
+    lw      $s4, 12($sp)                # pop s4 off stack
+    lw      $s3, 16($sp)                # pop s3 off stack
+    lw      $s2, 20($sp)                # pop s2 off stack
+    lw      $s1, 24($sp)                # pop s1 off stack
+    lw      $s0, 28($sp)                # pop s0 off stack
+    lw      $ra, 32($sp)                # get return address off stack
+    addi    $sp, 36                     # increment stack ptr by 9
     jr      $ra
 
 # TODO: fix parameter order bug
@@ -359,7 +453,11 @@ print_big:
     sub     $sp, $sp, 36                # decrement stack ptr by 9
     move    $t0, $a0                    # copy address from $a0 to $t0
     lw      $t2, ($t0)                  # load length of big int stored in $t0 into register $t2
-    beq     $t2, $0, end_loop_pb        # if length is 0 then skip print_big
+    bne     $t2, $0, continue_pb        # if length is not 0 then goto continue_pb
+    move    $a0, $0
+    jal     print_int                   # print "0"
+    j       end_loop_pb                 # goto end
+continue_pb:
     move    $t3, $t2                    # copy length to $t3
     mul     $t3, $t3, 4                 # multiply big_int length by 4 to get array len
     add     $t3, $t3, $t0               # get address of last element in big int & store in register $t3
@@ -405,6 +503,11 @@ shift_left:
     sub     $sp, $sp, 4                 # decrement stack ptr
     move    $t0, $a0                    # copy address from $a0 to $t0
     lw      $t2, ($t0)                  # load length of big int stored in $t0 into register $t2
+    li		$t3, 1		                # t3 = 1
+    bne     $t2, $t3, continue_sl       # if big_int.length > 1 goto continue
+    sw      $0, 4($t0)                  # A[0] = 0
+    j		end_loop_sl				    # jump to end_loop_sl
+continue_sl:
     move    $t3, $t2                    # copy length to $t3
     mul     $t3, $t3, 4                 # multiply big_int length by 4 to get array len
     add     $t3, $t3, $t0               # get address of last element in big int & store in register $t3
@@ -418,7 +521,7 @@ loop_sl:
     move    $t5, $t6                    # A[i]var = temp
     addi    $t4, 1                      # increment counter
     bne     $t4, $t2, loop_sl           # test loop condition
-# end loop
+end_loop_sl:
     jal     compress
     lw      $ra, ($sp)                  # get return address off stack
     addi    $sp, 4                      # increment stack ptr
