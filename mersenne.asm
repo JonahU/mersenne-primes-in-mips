@@ -14,6 +14,9 @@ test_p_equals:              .asciiz "Testing p = "
 found_prime_mp_equals:      .asciiz " found prime Mp = "
 mp_not_prime:               .asciiz "Mp not prime\n"
 newline:                    .asciiz "\n"
+big_int_0:                  .word   0 0
+big_int_1:                  .word   1 1
+big_int_2:                  .word   1 2
 big_int_0003:               .word   4 3 0 0 0
 big_int_3:                  .word   1 3
 big_int_7:                  .word   1 7
@@ -204,6 +207,7 @@ a_greater_than_b:
     li      $v0, 1                      # return = 1
     j		return_cb				    # jump to end of compare_big
 compare_big_digits:
+    beq     $t0, $0, return_cb          # if lengths == 0, jump to end
     move    $t2, $a0                    # t2 = A
     move    $t3, $a1                    # t3 = B
     mul     $t7, $t0, 4                 # multiply big_int length by 4 to get array len
