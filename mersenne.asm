@@ -1,39 +1,39 @@
     .data
-small_prime_tests:      .asciiz "Small Prime Tests\n"
-compress_test:          .asciiz "Compress Tests\n"
-shift_right_test:       .asciiz "Shift Right Test\n"
-shift_left_test:        .asciiz "Shift Left Test\n"
-comparison_tests:       .asciiz "Comparison Tests\n"
-multiply_tests:         .asciiz "Multiply Tests\n"
-power_tests:            .asciiz "Power Tests\n"
-subtraction_tests:      .asciiz "Subtraction Tests\n"
-modulus_tests:          .asciiz "Modulus Tests\n"
-llt_tests:              .asciiz "LLT Tests\n"
-mersenne_scan:          .asciiz "Mersenne Scan\n"
-test_p_equals:          .asciiz "Testing p = "
-found_prime_mp_equals:  .asciiz " found prime Mp = "
-newline:                .asciiz "\n"
-big_int_0003:           .word   4 3 0 0 0
-big_int_3:              .word   1 3
-big_int_7:              .word   1 7
-big_int_7_copy:         .word   1 7
-big_int_12:             .word   2 2 1
-big_int_30:             .word   2 0 3
-big_int_42:             .word   2 2 4
-big_int_48:             .word   2 8 4
-big_int_7000:           .word   4 0 0 0 7
-big_int_7_654_321:      .word   7 1 2 3 4 5 6 7
-big_int_9_000_000:      .word   7 0 0 0 0 0 0 9   
-big_int_10_000_000:     .word   8 0 0 0 0 0 0 0 1
-big_int_9_000_000_000:  .word   10 0 0 0 0 0 0 0 0 0 9
-big_int_9_000_000_000_copy:
-                        .word   10 0 0 0 0 0 0 0 0 0 9
-                                        # 1404 = (350+1)*4 bytes 
-big_int_empty_space:    .space  1404    # mult_big destination
-big_int_empty_space_2:  .space  1404    # pow_big destination
-big_int_empty_space_3:  .space  1404    # temp space used by mod_big
+small_prime_tests:          .asciiz "Small Prime Tests\n"
+compress_test:              .asciiz "Compress Tests\n"
+shift_right_test:           .asciiz "Shift Right Test\n"
+shift_left_test:            .asciiz "Shift Left Test\n"
+comparison_tests:           .asciiz "Comparison Tests\n"
+multiply_tests:             .asciiz "Multiply Tests\n"
+power_tests:                .asciiz "Power Tests\n"
+subtraction_tests:          .asciiz "Subtraction Tests\n"
+modulus_tests:              .asciiz "Modulus Tests\n"
+llt_tests:                  .asciiz "LLT Tests\n"
+mersenne_scan:              .asciiz "Mersenne Scan\n"
+test_p_equals:              .asciiz "Testing p = "
+found_prime_mp_equals:      .asciiz " found prime Mp = "
+mp_not_prime:               .asciiz "Mp not prime\n"
+newline:                    .asciiz "\n"
+big_int_0003:               .word   4 3 0 0 0
+big_int_3:                  .word   1 3
+big_int_7:                  .word   1 7
+big_int_7_copy:             .word   1 7
+big_int_12:                 .word   2 2 1
+big_int_30:                 .word   2 0 3
+big_int_42:                 .word   2 2 4
+big_int_48:                 .word   2 8 4
+big_int_7000:               .word   4 0 0 0 7
+big_int_7_654_321:          .word   7 1 2 3 4 5 6 7
+big_int_9_000_000:          .word   7 0 0 0 0 0 0 9   
+big_int_10_000_000:         .word   8 0 0 0 0 0 0 0 1
+big_int_9_000_000_000:      .word   10 0 0 0 0 0 0 0 0 0 9
+big_int_9_000_000_000_copy: .word   10 0 0 0 0 0 0 0 0 0 9
+                                
+mult_big_desination_space:  .space  1404    # 1404 = (350+1)*4 bytes 
+pow_big_destination_space:  .space  1404
+mod_big_temp_space:         .space  1404    # temp space used by mod_big
 
-TEST_big_int_1764: .word 4 4 6 7 1
+# TEST_big_int_1764: .word 4 4 6 7 1
 
     .text
 main:
@@ -183,6 +183,10 @@ main:
     move    $a0, $v0
     jal     print_big                   # print result
 
+    # LLT Tests
+    la      $a0, llt_tests
+    jal     print_string                # print "LLT Tests"
+
     # Exit
     li		$v0,10		                # $v0=10
     syscall
@@ -191,7 +195,7 @@ compare_big:
     lw      $t0, ($a0)                  # t0 = A.length
     lw      $t1, ($a1)                  # t1 = B.length
     li      $v0, 0                      # initialise return value = 0
-    beq     $t0, $t1, compare_big_digits# if lengths are equal then goto individual digits comparison
+    beq     $t0, $t1, compare_big_digits # if lengths are equal then goto individual digits comparison
     bgt		$t0, $t1, a_greater_than_b  # if $t0 > $t1 then goto a_greater_than_b
 a_less_than_b:
     li      $v0, -1                     # return = -1
@@ -291,7 +295,7 @@ mod_big:
     sub     $sp, $sp, 36                # decrement stack ptr by 9
     move    $s0, $a0                    # s0 = a
     move    $s1, $a1                    # s1 = b
-    la      $s2, big_int_empty_space_3  # s2 = empty space
+    la      $s2, mod_big_temp_space     # s2 = empty space
     move    $a0, $s1
     move    $a1, $s2
     jal     memcpy_big                  # b_copy = b
@@ -314,14 +318,14 @@ loop_outer_modb:
     jal     compare_big                 # CompareBig(b_copy,b)
     move    $t0, $v0                    # t0 = CompareBig result
     li      $t1, -1                     # t1 = 1
-    beq		$t0, $t1, end_loop_outer_modb# if $t0 == -1 then goto end of loop
+    beq		$t0, $t1, end_loop_outer_modb # if $t0 == -1 then goto end of loop
 loop_inner_modb:
     move    $a0, $s0
     move    $a1, $s2
     jal     compare_big                 # CompareBig(a,b_copy)
     move    $t0, $v0                    # t0 = CompareBig result
     li      $t1, -1                     # t1 = 1
-    beq		$t0, $t1, end_loop_inner_modb# if $t0 == -1 then goto end of loop
+    beq		$t0, $t1, end_loop_inner_modb # if $t0 == -1 then goto end of loop
     move    $a0, $s0
     move    $a1, $s2
     jal     sub_big                     # a - b_copy
@@ -355,7 +359,7 @@ mult_big:
     sub     $sp, $sp, 16                # decrement stack ptr by 4
     move 	$t0, $a0		            # t0 = A
     move 	$t1, $a1		            # t1 = B
-    la      $v0, big_int_empty_space    # v0 = C
+    la      $v0, mult_big_desination_space # v0 = C
     lw		$t2, ($t0)		            # temp = A.length
     lw		$t3, ($t1)		            # temp2 = B.length
     add     $t2, $t2, $t3               # temp += temp2
@@ -421,7 +425,15 @@ endif_mb:
     
 pow_big:
     sw      $ra, -4($sp)                # store return address on stack
-    sub     $sp, $sp, 4                 # decrement stack ptr
+    sw      $s0, -8($sp)                # store s0 on stack
+    sw      $s1, -12($sp)               # store s1 on stack
+    sw      $s2, -16($sp)               # store s2 on stack
+    sw      $s3, -20($sp)               # store s3 on stack
+    sw      $s4, -24($sp)               # store s4 on stack
+    sw      $s5, -28($sp)               # store s5 on stack
+    sw      $s6, -32($sp)               # store s6 on stack
+    sw      $s7, -36($sp)               # store s7 on stack
+    sub     $sp, $sp, 36                # decrement stack ptr by 9
     move    $t0, $a0                    # copy big_int address from $a0 to $t0
     move    $s0, $a0                    # copy big_int address also to $s0
     move    $s1, $a1                    # move exponent to $t1
@@ -431,13 +443,21 @@ loop_powb:
     move    $a1, $s0                    # a1 = A
     jal     mult_big                    # v0 = MultBig(A, result of last iteration)
     move    $a0, $v0                    # move result address to a0
-    la      $a1, big_int_empty_space_2  # load address of empty space 2
-    jal     memcpy_big                  # copy result of MultBig to empty space 2
-    move    $t0, $v0                    # t0 points to empty space 2
+    la      $a1, pow_big_destination_space # load address of empty space
+    jal     memcpy_big                  # copy result of MultBig to empty space
+    move    $t0, $v0                    # t0 points to empty space
     addi    $s2, 1                      # increment counter
     bne     $s2, $s1, loop_powb         # test loop condition
-    lw      $ra, ($sp)                  # get return address off stack
-    addi    $sp, 4                      # increment stack ptr
+    lw      $s7, 0($sp)                 # pop s7 off stack
+    lw      $s6, 4($sp)                 # pop s6 off stack
+    lw      $s5, 8($sp)                 # pop s5 off stack
+    lw      $s4, 12($sp)                # pop s4 off stack
+    lw      $s3, 16($sp)                # pop s3 off stack
+    lw      $s2, 20($sp)                # pop s2 off stack
+    lw      $s1, 24($sp)                # pop s1 off stack
+    lw      $s0, 28($sp)                # pop s0 off stack
+    lw      $ra, 32($sp)                # get return address off stack
+    addi    $sp, 36                     # increment stack ptr by 9
     jr      $ra
 
 print_big:
