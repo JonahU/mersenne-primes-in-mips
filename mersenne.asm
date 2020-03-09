@@ -19,6 +19,7 @@ big_int_1:                  .word   1 1
 big_int_2:                  .word   1 2
 big_int_0003:               .word   4 3 0 0 0
 big_int_3:                  .word   1 3
+big_int_4:                  .word   1 4
 big_int_7:                  .word   1 7
 big_int_7_copy:             .word   1 7
 big_int_12:                 .word   2 2 1
@@ -35,6 +36,7 @@ big_int_9_000_000_000_copy: .word   10 0 0 0 0 0 0 0 0 0 9
 mult_big_desination_space:  .space  1404    # 1404 = (350+1)*4 bytes 
 pow_big_destination_space:  .space  1404
 mod_big_temp_space:         .space  1404    # temp space used by mod_big
+LLT_temp_space:             .space  1404    # temp space used by LLT
 
 # TEST_big_int_1764: .word 4 4 6 7 1
 
@@ -187,14 +189,49 @@ main:
     jal     print_big                   # print result
 
     # LLT Tests
-    la      $a0, llt_tests
-    jal     print_string                # print "LLT Tests"
+    # la      $a0, llt_tests
+    # jal     print_string                # print "LLT Tests"
+    # li      $a0, 11
+    # jal     LLT                         # LLT(11)
+    # move    $a0, $v0
+    # jal     print_int                   # print 0 or 1
+    # jal     print_newline
+    # li      $a0, 61
+    # jal     LLT                         # LLT(61)
+    # move    $a0, $v0
+    # jal     print_int                   # print 0 or 1
+    # jal     print_newline
+    li      $a0, 3
+    jal     LLT                         # LLT(3)
+    move    $a0, $v0
+    jal     print_int                   # print 0 or 1
+    jal     print_newline
+    li      $a0, 4
+    jal     LLT                         # LLT(4)
+    move    $a0, $v0
+    jal     print_int                   # print 0 or 1
+    jal     print_newline
+    li      $a0, 61
+    jal     LLT                         # LLT(61)
+    move    $a0, $v0
+    jal     print_int                   # print 0 or 1
+    jal     print_newline
 
     # Exit
     li		$v0,10		                # $v0=10
     syscall
 
 compare_big:
+    sw      $ra, -4($sp)                # store return address on stack
+    sw      $s0, -8($sp)                # store s0 on stack
+    sw      $s1, -12($sp)               # store s1 on stack
+    sw      $s2, -16($sp)               # store s2 on stack
+    sw      $s3, -20($sp)               # store s3 on stack
+    sw      $s4, -24($sp)               # store s4 on stack
+    sw      $s5, -28($sp)               # store s5 on stack
+    sw      $s6, -32($sp)               # store s6 on stack
+    sw      $s7, -36($sp)               # store s7 on stack
+    sub     $sp, $sp, 36                # decrement stack ptr by 9
     lw      $t0, ($a0)                  # t0 = A.length
     lw      $t1, ($a1)                  # t1 = B.length
     li      $v0, 0                      # initialise return value = 0
@@ -224,6 +261,16 @@ loop_cb:
     addi    $t4, 1                      # counter += 1
     bne     $t4, $t0, loop_cb           # test loop condition
 return_cb:
+    lw      $s7, 0($sp)                 # pop s7 off stack
+    lw      $s6, 4($sp)                 # pop s6 off stack
+    lw      $s5, 8($sp)                 # pop s5 off stack
+    lw      $s4, 12($sp)                # pop s4 off stack
+    lw      $s3, 16($sp)                # pop s3 off stack
+    lw      $s2, 20($sp)                # pop s2 off stack
+    lw      $s1, 24($sp)                # pop s1 off stack
+    lw      $s0, 28($sp)                # pop s0 off stack
+    lw      $ra, 32($sp)                # get return address off stack
+    addi    $sp, 36                     # increment stack ptr by 9
     jr      $ra
 
 compress:
@@ -262,6 +309,69 @@ continue_loop_isp:
 end_loop_isp:
     move    $v0, $t3                    # store result in v0
     jr		$ra					        # jump to $ra
+
+LLT:
+    sw      $ra, -4($sp)                # store return address on stack
+    sw      $s0, -8($sp)                # store s0 on stack
+    sw      $s1, -12($sp)               # store s1 on stack
+    sw      $s2, -16($sp)               # store s2 on stack
+    sw      $s3, -20($sp)               # store s3 on stack
+    sw      $s4, -24($sp)               # store s4 on stack
+    sw      $s5, -28($sp)               # store s5 on stack
+    sw      $s6, -32($sp)               # store s6 on stack
+    sw      $s7, -36($sp)               # store s7 on stack
+    sub     $sp, $sp, 36                # decrement stack ptr by 9
+    move    $s0, $a0                    # a0 = p
+    la      $s1, big_int_0
+    la      $s2, big_int_1
+    la      $s3, big_int_2
+    move    $a0, $s3                    # a0 = 2
+    move    $a1, $s0                    # a1 = p
+    jal     pow_big                     # Mp = powBig(2, p)
+    move    $s4, $v0                    # s4 = Mp
+    move    $a0, $s4                    # a0 = Mp
+    move    $a1, $s2                    # a1 = 1
+    jal     sub_big                     # Mp -= 1
+    la      $a0, big_int_4              # load copy source
+    la      $a1, LLT_temp_space         # load copy destination
+    jal     memcpy_big                  # LLT_temp_space = "s" = 4
+    move    $s5, $v0                    # s5 = s
+    li      $s6, 0                      # initialise counter
+    addi    $s0, -2                     # p -= 2
+loop_llt:
+    move    $a0, $s5
+    move    $a1, $s5
+    jal     mult_big                    # s = s*s
+    move    $a0, $v0                    # move result to copy source
+    move    $a1, $s5                    # move s to destination source
+    jal     memcpy_big
+    move    $a0, $s5                    # a0 = s
+    move    $a1, $s3                    # a1 = 2
+    jal     sub_big
+    move    $a0, $s5                    # a0 = s
+    move    $a1, $s4                    # a1 = Mp
+    jal     mod_big
+    addi    $s6, 1                      # counter ++
+    bne     $s6, $s0, loop_llt          # continue while counter != p-2
+    move    $a0, $s5                    # a0 = s
+    la      $a1, big_int_0              # a1 = 0
+    jal     compare_big                 # compareBig(s, 0)
+    move    $t0, $v0                    # t0 = result
+    li      $v0, 1                      # result = 1 (PRIME)
+    beq		$t0, $0, return_llt         # if s == 0, goto return
+    li      $v0, 0                      # result = 0 (NOT_PRIME)
+return_llt:
+    lw      $s7, 0($sp)                 # pop s7 off stack
+    lw      $s6, 4($sp)                 # pop s6 off stack
+    lw      $s5, 8($sp)                 # pop s5 off stack
+    lw      $s4, 12($sp)                # pop s4 off stack
+    lw      $s3, 16($sp)                # pop s3 off stack
+    lw      $s2, 20($sp)                # pop s2 off stack
+    lw      $s1, 24($sp)                # pop s1 off stack
+    lw      $s0, 28($sp)                # pop s0 off stack
+    lw      $ra, 32($sp)                # get return address off stack
+    addi    $sp, 36                     # increment stack ptr by 9
+    jr  $ra
 
 memcpy_big:
     sw      $s0, -4($sp)                # store s0 on stack
@@ -360,7 +470,12 @@ mult_big:
     sw      $s0, -8($sp)                # store s0 on stack
     sw      $s1, -12($sp)               # store s1 on stack
     sw      $s2, -16($sp)               # store s2 on stack
-    sub     $sp, $sp, 16                # decrement stack ptr by 4
+    sw      $s3, -20($sp)               # store s3 on stack
+    sw      $s4, -24($sp)               # store s4 on stack
+    sw      $s5, -28($sp)               # store s5 on stack
+    sw      $s6, -32($sp)               # store s6 on stack
+    sw      $s7, -36($sp)               # store s7 on stack
+    sub     $sp, $sp, 36                # decrement stack ptr by 9
     move 	$t0, $a0		            # t0 = A
     move 	$t1, $a1		            # t1 = B
     la      $v0, mult_big_desination_space # v0 = C
@@ -420,11 +535,16 @@ endif_mb:
     bne     $t5, $t6, loop_outer_mb     # while outer counter != B.length, continue outer loop
     move    $a0, $v0                    # a0 = address pointing to C
     jal     compress                    # Compress(C[])
-    lw      $s2, 0($sp)                 # pop s2 off stack
-    lw      $s1, 4($sp)                 # pop s1 off stack
-    lw      $s0, 8($sp)                 # pop s0 off stack
-    lw      $ra, 12($sp)                # get return address off stack
-    addi    $sp, 16                     # increment stack ptr by 4
+    lw      $s7, 0($sp)                 # pop s7 off stack
+    lw      $s6, 4($sp)                 # pop s6 off stack
+    lw      $s5, 8($sp)                 # pop s5 off stack
+    lw      $s4, 12($sp)                # pop s4 off stack
+    lw      $s3, 16($sp)                # pop s3 off stack
+    lw      $s2, 20($sp)                # pop s2 off stack
+    lw      $s1, 24($sp)                # pop s1 off stack
+    lw      $s0, 28($sp)                # pop s0 off stack
+    lw      $ra, 32($sp)                # get return address off stack
+    addi    $sp, 36                     # increment stack ptr by 9
     jr      $ra
     
 pow_big:
