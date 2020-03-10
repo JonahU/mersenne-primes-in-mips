@@ -9,10 +9,10 @@ power_tests:                .asciiz "Power Tests\n"
 subtraction_tests:          .asciiz "Subtraction Tests\n"
 modulus_tests:              .asciiz "Modulus Tests\n"
 llt_tests:                  .asciiz "LLT Tests\n"
-mersenne_scan:              .asciiz "Mersenne Scan\n"
-test_p_equals:              .asciiz "Testing p = "
+mersenne_scan_str:          .asciiz "Mersenne Scan\n"
+testing_p_equals:           .asciiz "Testing p = "
 found_prime_mp_equals:      .asciiz " found prime Mp = "
-mp_not_prime:               .asciiz "Mp not prime\n"
+mp_not_prime:               .asciiz " Mp not prime\n"
 newline:                    .asciiz "\n"
 big_int_0:                  .word   0 0
 big_int_1:                  .word   1 1
@@ -37,6 +37,7 @@ mult_big_desination_space:  .space  1404    # 1404 = (350+1)*4 bytes
 pow_big_destination_space:  .space  1404
 mod_big_temp_space:         .space  1404    # temp space used by mod_big
 LLT_temp_space:             .space  1404    # temp space used by LLT
+LLT_temp_space_Mp:          .space  1404    # temp space for Mp found in LLT
 
 # TEST_big_int_1764: .word 4 4 6 7 1
 
@@ -189,18 +190,23 @@ main:
     jal     print_big                   # print result
 
     # LLT Tests
-    la      $a0, llt_tests
-    jal     print_string                # print "LLT Tests"
-    li      $a0, 11
-    jal     LLT                         # LLT(11)
-    move    $a0, $v0
-    jal     print_int                   # print 0 or 1
-    jal     print_newline
-    li      $a0, 61
-    jal     LLT                         # LLT(61)
-    move    $a0, $v0
-    jal     print_int                   # print 0 or 1
-    jal     print_newline
+    # la      $a0, llt_tests
+    # jal     print_string                # print "LLT Tests"
+    # li      $a0, 11
+    # jal     LLT                         # LLT(11)
+    # move    $a0, $v0
+    # jal     print_int                   # print 0 or 1
+    # jal     print_newline
+    # li      $a0, 61
+    # jal     LLT                         # LLT(61)
+    # move    $a0, $v0
+    # jal     print_int                   # print 0 or 1
+    # jal     print_newline
+
+    # Mersenne Scan
+    la		$a0, mersenne_scan_str
+    jal     print_string                # print "Mersenne Scan"
+    jal     mersenne_scan               # run mersenne scan
 
     # Exit
     li		$v0,10		                # $v0=10
@@ -312,6 +318,8 @@ LLT:
     la      $s3, big_int_2
     la      $a0, LLT_temp_space
     jal     zero_out_big                # zero out bits in LLT temp space
+    la      $a0, LLT_temp_space_Mp
+    jal     zero_out_big                # zero out bits in LLT temp space for Mp
     move    $a0, $s3                    # a0 = 2
     move    $a1, $s0                    # a1 = p
     jal     pow_big                     # Mp = powBig(2, p)
@@ -319,6 +327,10 @@ LLT:
     move    $a0, $s4                    # a0 = Mp
     move    $a1, $s2                    # a1 = 1
     jal     sub_big                     # Mp -= 1
+    move    $a0, $s4
+    la      $a1, LLT_temp_space_Mp
+    jal     memcpy_big                  # copy Mp to LLT_temp_space_Mp to stop it getting overwritten
+    la      $s4, LLT_temp_space_Mp      # s4 points to LLT_temp_space_Mp
     la      $a0, big_int_4              # load copy source
     la      $a1, LLT_temp_space         # load copy destination
     jal     memcpy_big                  # LLT_temp_space = "s" = 4
@@ -348,6 +360,7 @@ loop_llt:
     beq		$t0, $0, return_llt         # if s == 0, goto return
     li      $v0, 0                      # result = 0 (NOT_PRIME)
 return_llt:
+    move    $v1, $s4                    # return value 2 = Mp
     lw      $s7, 0($sp)                 # pop s7 off stack
     lw      $s6, 4($sp)                 # pop s6 off stack
     lw      $s5, 8($sp)                 # pop s5 off stack
@@ -381,6 +394,38 @@ loop_memb:
     lw      $s1, 4($sp)                 # pop s1 off stack
     lw      $s0, 8($sp)                 # pop s0 off stack
     addi    $sp, 12                     # increment stack ptr by 3
+    jr      $ra
+
+mersenne_scan:
+    sw      $ra, -4($sp)                # store return address on stack
+    sub     $sp, $sp, 4                 # decrement stack ptr
+    li      $s0, 2                      # initialise counter
+    li      $s1, 129                    # load upper bound
+loop_mscan:
+    move    $a0, $s0                    # a0 = counter
+    jal     is_small_prime              # is_small_prime(p)
+    beq     $v0, $0, continue_loop_mscan # if result is false, goto next number
+    la      $a0, testing_p_equals
+    jal     print_string                # print "Testing p = "
+    move    $a0, $s0
+    jal     print_int                   # print p
+    move    $a0, $s0
+    jal     LLT                         # call LLT(p)
+    beq     $v0, $0, not_mersenne_prime # if result is 0, goto not mersenne prime
+    move    $s2, $v1                    # s2 = Mp
+    la      $a0, found_prime_mp_equals
+    jal     print_string
+    move    $a0, $s2
+    jal     print_big
+    j		continue_loop_mscan		    # jump to target
+not_mersenne_prime:
+    la		$a0, mp_not_prime
+    jal     print_string 
+continue_loop_mscan:
+    addi    $s0, 1                      # counter ++
+    bne     $s0, $s1, loop_mscan        # test loop condition
+    lw      $ra, ($sp)                  # get return address off stack
+    addi    $sp, 4                      # increment stack ptr
     jr      $ra
 
 mod_big:
@@ -663,15 +708,20 @@ end_loop_sl:
     jr      $ra
 
 shift_right:
+    sw      $ra, -4($sp)                # store return address on stack
+    sub     $sp, $sp, 4                 # decrement stack ptr
     move    $t0, $a0                    # copy address from $a0 to $t0
     move    $t1, $t0                    # make another copy
     lw      $t2, ($t1)                  # get A.length
+    # beq     $t2, $0, end_shift_right    # if length = 0, do nothing
     addi    $t1, 4                      # point to A[0]
     lw      $t3, ($t1)                  # get A[0]
     sw      $0, ($t1)                   # set A[0] = 0
     li      $t4, 0                      # initialise counter
 loop_sr:
     addi    $t1, 4                      # point to A[i+1]
+    # move    $a0, $t1
+    # jal     print_int
     lw      $t5, ($t1)                  # temp = A[i+1]
     sw      $t3, ($t1)                  # A[i+1] = A[i]
     move    $t3, $t5                    # update A[i] temp register
@@ -679,6 +729,9 @@ loop_sr:
     bne     $t4, $t2, loop_sr           # test loop condition 
     addi    $t2, 1                      # A.length += 1
     sw      $t2, ($t0)                  # store length back into big int
+# end_shift_right:
+    lw      $ra, ($sp)                  # get return address off stack
+    addi    $sp, 4                      # increment stack ptr
     jr      $ra
 
 sub_big:
