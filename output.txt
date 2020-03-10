@@ -27,6 +27,9 @@ Modulus Tests
 1
 0
 6172825
+LLT Tests
+0
+1
 Mersenne Scan
 Testing p = 3 found prime Mp = 7
 Testing p = 5 found prime Mp = 31

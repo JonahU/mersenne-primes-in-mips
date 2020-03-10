@@ -190,18 +190,18 @@ main:
     jal     print_big                   # print result
 
     # LLT Tests
-    # la      $a0, llt_tests
-    # jal     print_string                # print "LLT Tests"
-    # li      $a0, 11
-    # jal     LLT                         # LLT(11)
-    # move    $a0, $v0
-    # jal     print_int                   # print 0 or 1
-    # jal     print_newline
-    # li      $a0, 61
-    # jal     LLT                         # LLT(61)
-    # move    $a0, $v0
-    # jal     print_int                   # print 0 or 1
-    # jal     print_newline
+    la      $a0, llt_tests
+    jal     print_string                # print "LLT Tests"
+    li      $a0, 11
+    jal     LLT                         # LLT(11)
+    move    $a0, $v0
+    jal     print_int                   # print 0 or 1
+    jal     print_newline
+    li      $a0, 61
+    jal     LLT                         # LLT(61)
+    move    $a0, $v0
+    jal     print_int                   # print 0 or 1
+    jal     print_newline
 
     # Mersenne Scan
     la		$a0, mersenne_scan_str
@@ -713,7 +713,7 @@ shift_right:
     move    $t0, $a0                    # copy address from $a0 to $t0
     move    $t1, $t0                    # make another copy
     lw      $t2, ($t1)                  # get A.length
-    beq     $t2, $0, end_shift_right    # if length = 0, do nothing NOTE: this line can cause mod to infinitely loop
+    beq     $t2, $0, end_shift_right    # if length = 0, do nothing, NOTE: this line can cause mod_big to infinitely loop
     addi    $t1, 4                      # point to A[0]
     lw      $t3, ($t1)                  # get A[0]
     sw      $0, ($t1)                   # set A[0] = 0
