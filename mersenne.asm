@@ -34,12 +34,10 @@ big_int_9_000_000_000:      .word   10 0 0 0 0 0 0 0 0 0 9
 big_int_9_000_000_000_copy: .word   10 0 0 0 0 0 0 0 0 0 9
                                 
 mult_big_desination_space:  .space  1404    # 1404 = (350+1)*4 bytes 
-pow_big_destination_space:  .space  1404
+pow_big_destination_space:  .space  1404    # subroutine "return" values stored in destination spaces
 mod_big_temp_space:         .space  1404    # temp space used by mod_big
 LLT_temp_space:             .space  1404    # temp space used by LLT
 LLT_temp_space_Mp:          .space  1404    # temp space for Mp found in LLT
-
-# TEST_big_int_1764: .word 4 4 6 7 1
 
     .text
 main:
@@ -126,19 +124,6 @@ main:
     jal     mult_big                    # MultBig(10000000,9000000)
     move    $a0, $v0                    # move result ptr to $a0
     jal     print_big                   # print result
-
-    # Multiply bug test
-    # la      $a0, TEST_big_int_1764
-    # la      $a1, big_int_42
-    # jal     mult_big                    # MultBig(1764,42)
-    # move    $a0, $v0                    # move result ptr to $a0 
-    # jal     print_big                   # print result
-    # la      $a0, big_int_42
-    # la      $a1, TEST_big_int_1764
-    # jal     mult_big                    # MultBig(42, 1764)
-    # move    $a0, $v0                    # move result ptr to $a0 
-    # jal     print_big                   # print result
-
 
     # Power Tests
     la      $a0, power_tests
@@ -496,9 +481,8 @@ end_loop_outer_modb:
     addi    $sp, 36                     # increment stack ptr by 9
     jr      $ra
 
-# TODO: fix parameter order bug
-# 1764 * 42 = 74088     [Correct]
-# 42 * 1764 = 414088    [Wrong]
+# NOTE: parameter order matters
+# value of big_int $a0 must be greater than $a1 or else incorrect result
 mult_big:
     sw      $ra, -4($sp)                # store return address on stack
     sw      $s0, -8($sp)                # store s0 on stack
